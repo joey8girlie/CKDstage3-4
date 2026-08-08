@@ -264,7 +264,7 @@
       <button class="topbar-back" id="backBtn" style="display:none" onclick="goHome()">‹</button>
       <div>
         <div class="topbar-title" id="topTitle">ดูแลไตเรื้อรัง ระยะ 3-4</div>
-        <div class="topbar-sub" id="topSub">คลินิกโรคไต</div>
+        <div class="topbar-sub" id="topSub">คลินิกโรคไต · โรงพยาบาลสูงเม่น</div>
       </div>
     </div>
     <div id="stageChipWrap"></div>
@@ -455,7 +455,7 @@
   <div class="view hidden" id="view-contact">
     <div class="card">
       <h2>📞 ติดต่อคลินิก CKD</h2>
-      <p>คลินิกโรคไตเรื้อรัง</p>
+      <p>คลินิกโรคไตเรื้อรัง โรงพยาบาลสูงเม่น</p>
       <h3>เบอร์โทรศัพท์คลินิก</h3>
       <p><a class="tel-link" href="tel:0000000000">0-000-000-000 (แก้ไขเบอร์จริงในโค้ด)</a></p>
       <h3>พยาบาลผู้ดูแล</h3>
@@ -486,6 +486,8 @@
       apps-script-ckd-sync.gs (ไฟล์แนบ) — ใช้ส่งข้อมูลไปเก็บใน Google Sheet
       เพื่องานวิจัย ไม่ใส่ก็ใช้งานได้ปกติ แต่ข้อมูลจะอยู่ในเครื่องผู้ป่วยเท่านั้น
 ------------------------------- */
+// Patient records are isolated by LINE User ID. Keep this LIFF ID unchanged
+// unless you intentionally create a different LINE Login/LIFF application.
 const CONFIG = {
   LIFF_ID: '2011023822-78Nsj55v',
   APPS_SCRIPT_URL: 'https://script.google.com/macros/s/AKfycbyvhcbCdBkX6kQMjNBjAcMnauBldfewHBE30usMKhOj36SpPB3Bh7A6UJPB0qvmSHmGxw/exec'
@@ -529,9 +531,46 @@ const TITLES = {
 };
 
 /* ---------- storage helpers ---------- */
+/*
+ * Patient data is isolated by LINE User ID.
+ * This prevents two LINE accounts using the same phone/browser from
+ * accidentally sharing CKD profile, tracker, onboarding, or sync data.
+ *
+ * Before LIFF identifies the user, only the temporary device ID is stored
+ * in the device namespace. Once LIFF login succeeds, all patient data uses
+ * the LINE namespace: ckd:user:<LINE_USER_ID>:<key>
+ */
+let storageScope = 'device';
+
+function setStorageScope(userId){
+  if(userId){
+    storageScope = 'line:' + String(userId);
+  }else{
+    storageScope = 'device';
+  }
+}
+
+function storageKey(k){
+  return `ckd:${storageScope}:${k}`;
+}
+
 const store = {
-  get(k, fallback){ try{ const v = localStorage.getItem(k); return v ? JSON.parse(v) : fallback; }catch(e){ return fallback; } },
-  set(k, v){ try{ localStorage.setItem(k, JSON.stringify(v)); }catch(e){} }
+  get(k, fallback){
+    try{
+      const v = localStorage.getItem(storageKey(k));
+      return v ? JSON.parse(v) : fallback;
+    }catch(e){
+      return fallback;
+    }
+  },
+  set(k, v){
+    try{
+      localStorage.setItem(storageKey(k), JSON.stringify(v));
+    }catch(e){}
+  },
+  remove(k){
+    try{ localStorage.removeItem(storageKey(k)); }catch(e){}
+  }
 };
 
 /* ---------- navigation (with deep-link support via #hash, for Rich Menu buttons) ---------- */
@@ -548,7 +587,7 @@ function nav(id, updateHash){
   document.getElementById('topSub').textContent = t[1];
   document.querySelectorAll('.nav-btn').forEach(b=>b.classList.toggle('active', b.dataset.v===id));
   window.scrollTo(0,0);
-  if(id==='tracker'){ renderHistory(); updateSyncStatus(); flushSyncQueue(); }
+  if(id==='tracker'){ initTrackerDate(); renderHistory(); updateSyncStatus(); flushSyncQueue(); }
   if(id==='faq') renderFaq();
   if(id==='home') renderHome();
   renderIdentityBadge();
@@ -556,6 +595,15 @@ function nav(id, updateHash){
 }
 
 /* ---------- identity badge (always visible in header, so it's clear whose data this is) ---------- */
+function escapeHtml(value){
+  return String(value ?? '')
+    .replace(/&/g,'&amp;')
+    .replace(/</g,'&lt;')
+    .replace(/>/g,'&gt;')
+    .replace(/"/g,'&quot;')
+    .replace(/'/g,'&#039;');
+}
+
 function renderIdentityBadge(){
   const chipWrap = document.getElementById('stageChipWrap');
   if(!chipWrap) return;
@@ -566,15 +614,27 @@ function renderIdentityBadge(){
   const stageTxt = profile.stage ? (stageMap[profile.stage] || '') : '';
   let chips = '';
   if(displayName){
-    chips += `<span class="stage-chip">👤 ${displayName}</span> `;
+    chips += `<span class="stage-chip">👤 ${escapeHtml(displayName)}</span> `;
+    if(currentUserId && !String(currentUserId).startsWith('dev-')){
+      chips += `<span class="stage-chip">LINE ✓</span> `;
+    }
   } else {
     chips += `<span class="stage-chip">👤 รหัสอุปกรณ์ ${(currentUserId||'').slice(-6)}</span> `;
   }
   if(stageTxt){
-    chips += `<span class="stage-chip">${stageTxt}${profile.egfr ? ' · eGFR ' + profile.egfr : ''}</span>`;
+    chips += `<span class="stage-chip">${escapeHtml(stageTxt)}${profile.egfr ? ' · eGFR ' + escapeHtml(profile.egfr) : ''}</span>`;
   }
   chipWrap.innerHTML = chips;
 }
+function getLineIdentity(){
+  const p = store.get('ckd_line_profile', null);
+  return {
+    userId: currentUserId || null,
+    displayName: p?.displayName || null,
+    isLineLoggedIn: !!(currentUserId && !String(currentUserId).startsWith('dev-'))
+  };
+}
+
 function goHome(){ nav('home'); }
 window.addEventListener('hashchange', function(){
   const id = location.hash.replace('#','');
@@ -591,8 +651,10 @@ function toggleConsent(){
   document.getElementById('consentToggle').classList.toggle('checked', consentAgreed);
 }
 function onbBack(step){
-  document.getElementById('onb-step2').classList.add('hidden');
-  document.getElementById('onb-step'+step).classList.remove('hidden');
+  [1,2,3].forEach(n => {
+    const el = document.getElementById('onb-step'+n);
+    if(el) el.classList.toggle('hidden', n !== step);
+  });
 }
 function submitConsent(){
   if(!consentAgreed){
@@ -626,10 +688,10 @@ function renderQuiz(){
   const wrap = document.getElementById('quizWrap');
   wrap.innerHTML = QUIZ.map((item,i)=>`
     <div class="quiz-q">
-      <p>${i+1}. ${item.q}</p>
+      <p>${i+1}. ${escapeHtml(item.q)}</p>
       ${item.opts.map((o,j)=>`
         <div class="quiz-opt" data-q="${i}" data-opt="${j}" onclick="selectQuizOption(${i},${j})">
-          <span class="quiz-dot"></span><span>${o}</span>
+          <span class="quiz-dot"></span><span>${escapeHtml(o)}</span>
         </div>
       `).join('')}
     </div>
@@ -670,15 +732,29 @@ function renderHome(){
   const slot = document.getElementById('homeAlertSlot');
   if(alerts.length){
     const latest = alerts[alerts.length-1];
-    slot.innerHTML = `<div class="alert-banner stop"><span class="dot">⚠️</span><span>${latest}</span></div>`;
+    const latestMsg = (latest && typeof latest === 'object') ? latest.msg : latest;
+    slot.innerHTML = `<div class="alert-banner stop"><span class="dot">⚠️</span><span>${escapeHtml(latestMsg || '')}</span></div>`;
   } else {
     slot.innerHTML = '';
   }
 }
 
 /* ---------- tracker ---------- */
+function getLocalDateString(){
+  const d = new Date();
+  const y = d.getFullYear();
+  const m = String(d.getMonth()+1).padStart(2,'0');
+  const day = String(d.getDate()).padStart(2,'0');
+  return `${y}-${m}-${day}`;
+}
+
+function initTrackerDate(){
+  const el = document.getElementById('t-date');
+  if(el && !el.value) el.value = getLocalDateString();
+}
+
 function saveTracker(){
-  const date = document.getElementById('t-date').value || new Date().toISOString().slice(0,10);
+  const date = document.getElementById('t-date').value || getLocalDateString();
   const entry = {
     date,
     sbp: document.getElementById('t-sbp').value,
@@ -695,6 +771,28 @@ function saveTracker(){
     alert('กรุณากรอกความดันโลหิตหรือน้ำหนักตัวอย่างน้อยหนึ่งรายการ');
     return;
   }
+
+  const numericChecks = [
+    ['ความดันตัวบน', entry.sbp, 40, 300],
+    ['ความดันตัวล่าง', entry.dbp, 20, 200],
+    ['น้ำหนักตัว', entry.weight, 1, 500],
+    ['eGFR', entry.egfr, 0, 200],
+    ['Creatinine', entry.cr, 0, 30],
+    ['BUN', entry.bun, 0, 300],
+    ['Potassium', entry.k, 1, 15],
+    ['Bicarbonate', entry.bicarb, 1, 60],
+    ['UPCR/UACR', entry.upcr, 0, 10000]
+  ];
+
+  for(const [label, value, min, max] of numericChecks){
+    if(value !== ''){
+      const n = parseFloat(value);
+      if(!Number.isFinite(n) || n < min || n > max){
+        alert(`${label} มีค่าไม่ถูกต้อง กรุณาตรวจสอบอีกครั้ง`);
+        return;
+      }
+    }
+  }
   const history = store.get('ckd_tracker', []);
   history.push(entry);
   store.set('ckd_tracker', history);
@@ -707,27 +805,59 @@ function saveTracker(){
 
 function checkAlerts(entry, history){
   const msgs = [];
+
+  // Blood pressure: validate both SBP and DBP when supplied.
   const sbp = parseFloat(entry.sbp);
-  if(sbp >= 160){
-    msgs.push('ความดันโลหิตตัวบนสูงมาก (≥160 mmHg) — กรุณาลดเค็มและติดต่อคลินิก CKD โดยเร็ว');
-  } else if(sbp >= 140){
-    msgs.push('ความดันโลหิตตัวบนสูงกว่าเป้าหมาย (≥140 mmHg) — แนะนำลดเค็มและติดตามอาการใกล้ชิด');
-  }
-  const w = parseFloat(entry.weight);
-  if(w && history.length >= 2){
-    const prev = history[history.length-2];
-    const prevW = parseFloat(prev.weight);
-    if(prevW && (w - prevW) >= 2){
-      msgs.push('น้ำหนักตัวเพิ่มขึ้นเร็ว (≥2 กก. จากครั้งก่อน) — อาจมีภาวะบวมน้ำ ควรลดเค็มและติดต่อคลินิก CKD');
+  const dbp = parseFloat(entry.dbp);
+
+  if(Number.isFinite(sbp)){
+    if(sbp >= 180){
+      msgs.push('ความดันตัวบนสูงมาก (≥180 mmHg) — หากมีอาการเจ็บหน้าอก หายใจลำบาก สับสน อ่อนแรง หรือปวดศีรษะรุนแรง ให้ไปห้องฉุกเฉินทันที');
+    } else if(sbp >= 160){
+      msgs.push('ความดันตัวบนสูงมาก (≥160 mmHg) — กรุณาพักและวัดซ้ำ หากยังสูงควรติดต่อคลินิก CKD โดยเร็ว');
+    } else if(sbp >= 140){
+      msgs.push('ความดันตัวบนสูงกว่าเป้าหมาย (≥140 mmHg) — แนะนำติดตามความดันและปรึกษาทีมรักษา');
     }
   }
+
+  if(Number.isFinite(dbp)){
+    if(dbp >= 120){
+      msgs.push('ความดันตัวล่างสูงมาก (≥120 mmHg) — หากมีอาการผิดปกติร่วมด้วย ให้ไปห้องฉุกเฉินทันที');
+    } else if(dbp >= 90){
+      msgs.push('ความดันตัวล่างสูงกว่าเป้าหมาย (≥90 mmHg) — แนะนำติดตามความดันและปรึกษาทีมรักษา');
+    }
+  }
+
+  // Compare weight with the most recent earlier entry by date.
+  const w = parseFloat(entry.weight);
+  if(Number.isFinite(w)){
+    const datedHistory = history
+      .filter(h => h !== entry && h.date && Number.isFinite(parseFloat(h.weight)))
+      .sort((a,b) => String(b.date).localeCompare(String(a.date)));
+
+    const prev = datedHistory.find(h => String(h.date) <= String(entry.date));
+    if(prev){
+      const prevW = parseFloat(prev.weight);
+      if(Number.isFinite(prevW) && (w - prevW) >= 2){
+        msgs.push('น้ำหนักตัวเพิ่มขึ้นเร็ว (≥2 กก. จากครั้งก่อน) — อาจมีภาวะคั่งน้ำ ควรลดเค็มและติดต่อคลินิก CKD');
+      }
+    }
+  }
+
   if(msgs.length){
     const all = store.get('ckd_alerts', []);
-    all.push(...msgs);
+    const now = Date.now();
+    msgs.forEach(m => all.push({msg:m, date:entry.date, ts:now}));
     store.set('ckd_alerts', all);
+
     msgs.forEach(m => queueSync('alert', {msg:m, entryDate:entry.date}));
+
     const slot = document.getElementById('trackerAlertSlot');
-    slot.innerHTML = msgs.map(m=>`<div class="alert-banner stop"><span class="dot">⚠️</span><span>${m}</span></div>`).join('');
+    if(slot){
+      slot.innerHTML = msgs.map(m =>
+        `<div class="alert-banner stop"><span class="dot">⚠️</span><span>${m}</span></div>`
+      ).join('');
+    }
   }
 }
 
@@ -740,16 +870,16 @@ function renderHistory(){
   }
   wrap.innerHTML = history.slice(0,10).map(h=>`
     <div class="hist-item">
-      <div class="hist-date">📅 ${h.date}</div>
+      <div class="hist-date">📅 ${escapeHtml(h.date)}</div>
       <div class="hist-grid">
-        ${h.sbp ? `<div>BP: ${h.sbp}/${h.dbp||'-'} mmHg</div>`:''}
-        ${h.weight ? `<div>น้ำหนัก: ${h.weight} กก.</div>`:''}
-        ${h.egfr ? `<div>eGFR: ${h.egfr}</div>`:''}
-        ${h.cr ? `<div>Cr: ${h.cr}</div>`:''}
-        ${h.bun ? `<div>BUN: ${h.bun}</div>`:''}
-        ${h.k ? `<div>K: ${h.k}</div>`:''}
-        ${h.bicarb ? `<div>Bicarb: ${h.bicarb}</div>`:''}
-        ${h.upcr ? `<div>UPCR/UACR: ${h.upcr}</div>`:''}
+        ${h.sbp ? `<div>BP: ${escapeHtml(h.sbp)}/${escapeHtml(h.dbp||'-')} mmHg</div>`:''}
+        ${h.weight ? `<div>น้ำหนัก: ${escapeHtml(h.weight)} กก.</div>`:''}
+        ${h.egfr ? `<div>eGFR: ${escapeHtml(h.egfr)}</div>`:''}
+        ${h.cr ? `<div>Cr: ${escapeHtml(h.cr)}</div>`:''}
+        ${h.bun ? `<div>BUN: ${escapeHtml(h.bun)}</div>`:''}
+        ${h.k ? `<div>K: ${escapeHtml(h.k)}</div>`:''}
+        ${h.bicarb ? `<div>Bicarb: ${escapeHtml(h.bicarb)}</div>`:''}
+        ${h.upcr ? `<div>UPCR/UACR: ${escapeHtml(h.upcr)}</div>`:''}
       </div>
     </div>
   `).join('');
@@ -758,11 +888,12 @@ function renderHistory(){
 /* ---------- faq ---------- */
 function renderFaq(){
   const wrap = document.getElementById('faqList');
+  if(!wrap) return;
   if(wrap.dataset.rendered) return;
   wrap.innerHTML = FAQ.map((f,i)=>`
     <div class="faq-item" id="faq-${i}">
-      <div class="faq-q" onclick="toggleFaq(${i})"><span>${f.q}</span><span class="chev">▾</span></div>
-      <div class="faq-a">${f.a}</div>
+      <div class="faq-q" onclick="toggleFaq(${i})"><span>${escapeHtml(f.q)}</span><span class="chev">▾</span></div>
+      <div class="faq-a">${escapeHtml(f.a)}</div>
     </div>
   `).join('');
   wrap.dataset.rendered = '1';
@@ -773,28 +904,65 @@ function toggleFaq(i){
 
 /* ---------- LINE LIFF identity ---------- */
 function getOrCreateDeviceId(){
-  let id = store.get('ckd_device_id', null);
+  // Device ID is only a fallback when LIFF is not configured.
+  // It is NOT used when this app is connected to LINE Login.
+  let id = localStorage.getItem('ckd:device:ckd_device_id');
   if(!id){
     id = 'dev-' + Math.random().toString(36).slice(2,10) + Date.now().toString(36);
-    store.set('ckd_device_id', id);
+    try{ localStorage.setItem('ckd:device:ckd_device_id', id); }catch(e){}
   }
   return id;
 }
+
 async function initLiff(){
   const hasLiffConfig = CONFIG.LIFF_ID && !CONFIG.LIFF_ID.includes('YOUR_');
-  if(!hasLiffConfig || typeof liff === 'undefined'){
+
+  // If LIFF is intentionally not configured, allow standalone browser use.
+  if(!hasLiffConfig){
     currentUserId = getOrCreateDeviceId();
-    return;
+    setStorageScope(null);
+    return true;
   }
+
+  if(typeof liff === 'undefined'){
+    throw new Error('ไม่พบ LIFF SDK');
+  }
+
   try{
     await liff.init({liffId: CONFIG.LIFF_ID});
-    if(!liff.isLoggedIn()){ liff.login(); return; }
+
+    if(!liff.isLoggedIn()){
+      // LINE Login is required for patient-data separation.
+      liff.login({redirectUri: window.location.href});
+      return false;
+    }
+
     const profile = await liff.getProfile();
+
+    if(!profile || !profile.userId){
+      throw new Error('ไม่สามารถอ่าน LINE User ID ได้');
+    }
+
     currentUserId = profile.userId;
-    store.set('ckd_line_profile', {userId: profile.userId, displayName: profile.displayName});
+
+    // IMPORTANT: switch storage namespace only AFTER LINE User ID is known.
+    setStorageScope(currentUserId);
+
+    store.set('ckd_line_profile', {
+      userId: profile.userId,
+      displayName: profile.displayName || '',
+      pictureUrl: profile.pictureUrl || '',
+      statusMessage: profile.statusMessage || '',
+      updatedAt: Date.now()
+    });
+
+    return true;
+
   }catch(e){
-    console.warn('LIFF init failed, falling back to device id', e);
-    currentUserId = getOrCreateDeviceId();
+    console.error('LIFF init failed:', e);
+    currentUserId = null;
+    setStorageScope(null);
+    throw e;
   }
 }
 
@@ -814,11 +982,36 @@ async function flushSyncQueue(){
   const remaining = [];
   for(const item of queue){
     try{
-      await fetch(CONFIG.APPS_SCRIPT_URL, {
+      const res = await fetch(CONFIG.APPS_SCRIPT_URL, {
         method: 'POST',
         headers: {'Content-Type': 'text/plain;charset=utf-8'},
-        body: JSON.stringify({type:item.type, payload:item.payload, patientId: currentUserId, ts:item.ts})
+        body: JSON.stringify({
+          type:item.type,
+          payload:item.payload,
+          patientId: currentUserId,
+          lineUserId: currentUserId,
+          lineProfile: store.get('ckd_line_profile', null),
+          ts:item.ts
+        })
       });
+
+      if(!res.ok){
+        throw new Error(`Sync failed: HTTP ${res.status}`);
+      }
+
+      // Apps Script may return JSON or plain text. A successful HTTP response
+      // is enough unless the response explicitly says success:false.
+      const raw = await res.text();
+      if(raw){
+        try{
+          const data = JSON.parse(raw);
+          if(data && data.success === false){
+            throw new Error(data.error || 'Apps Script rejected the data');
+          }
+        }catch(parseError){
+          // Ignore non-JSON responses from Apps Script.
+        }
+      }
     }catch(e){
       remaining.push(item);
     }
@@ -847,6 +1040,7 @@ async function checkExistingRegistration(){
   try{
     const url = CONFIG.APPS_SCRIPT_URL + '?action=check&patientId=' + encodeURIComponent(currentUserId);
     const res = await fetch(url);
+    if(!res.ok) throw new Error(`HTTP ${res.status}`);
     return await res.json();
   }catch(e){
     console.warn('registration check failed, falling back to local storage', e);
@@ -862,7 +1056,17 @@ function withTimeout(promise, ms){
 }
 async function boot(){
   try{
-    await withTimeout(initLiff(), 4000);
+    initTrackerDate();
+    const liffReady = await withTimeout(initLiff(), 7000);
+    if(liffReady === false){
+      // liff.login() has redirected the user to LINE authentication.
+      // Do not continue with a device-scoped patient record.
+      return;
+    }
+    if(!currentUserId){
+      throw new Error('ไม่พบ LINE User ID');
+    }
+
     let onboarded = store.get('ckd_onboarded', false);
     if(!onboarded){
       const remote = await withTimeout(checkExistingRegistration(), 4000);
@@ -888,9 +1092,28 @@ async function boot(){
       showView('onboarding');
     }
   }catch(e){
-    // Never leave the patient stuck on the loading screen — fall back to
-    // whatever we can determine from local storage alone.
-    console.error('boot() failed, falling back to local state', e);
+    console.error('boot() failed:', e);
+
+    // When LIFF is configured, do NOT fall back to another user's local
+    // patient record. Show a clear message instead.
+    if(CONFIG.LIFF_ID && !CONFIG.LIFF_ID.includes('YOUR_')){
+      const loading = document.getElementById('view-loading');
+      if(loading){
+        const box = loading.querySelector('.loading-box') || loading;
+        box.innerHTML = `
+          <div style="font-size:42px">⚠️</div>
+          <h2 style="margin:12px 0 8px">เชื่อมต่อ LINE ไม่สำเร็จ</h2>
+          <p style="margin:0;color:#667085;line-height:1.6">
+            กรุณาปิดหน้านี้แล้วเปิด CKD Care จาก LINE ใหม่อีกครั้ง
+          </p>
+          <button class="btn" style="margin-top:18px"
+                  onclick="location.reload()">ลองใหม่</button>
+        `;
+      }
+      showView('loading');
+      return;
+    }
+
     const onboarded = store.get('ckd_onboarded', false);
     if(onboarded){ document.getElementById('bottomnav').classList.remove('hidden'); }
     showView(onboarded ? 'home' : 'onboarding');
