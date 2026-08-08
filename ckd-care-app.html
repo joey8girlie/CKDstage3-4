@@ -7,7 +7,909 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Kanit:wght@400;500;600;700&family=Sarabun:wght<!DOCTYPE html>
 <html lang="th"><!DOCTYPE html><!DOCTYPE html>
+<html lang="th"><!DOCTYPE html>
 <html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>ดูแลไตเรื้อรัง ระยะ 3-4</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Kanit:wght@400;500;600;700&family=Sarabun:wght@400;500;600;700&display=swap" rel="stylesheet">
+<script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
+<style>
+  :root{
+    --teal-900:#123a37;
+    --teal-700:#1f5f5b;
+    --teal-600:#2a756f;
+    --sage-400:#7fa98f;
+    --sage-200:#cfe3d6;
+    --bg:#f6f9f5;
+    --card:#ffffff;
+    --ink:#1c2b28;
+    --ink-soft:#5a6b66;
+    --line:#e1ece5;
+    --go:#3e9a63;
+    --go-bg:#e6f5eb;
+    --caution:#d99a2b;
+    --caution-bg:#fbf1de;
+    --stop:#cf4f45;
+    --stop-bg:#fbe9e7;
+    --radius:16px;
+    --shadow:0 6px 20px rgba(18,58,55,0.08);
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+  body{
+    font-family:'Sarabun',sans-serif;
+    background:var(--bg);
+    color:var(--ink);
+    -webkit-font-smoothing:antialiased;
+    min-height:100vh;
+  }
+  h1,h2,h3,.display{font-family:'Kanit',sans-serif;}
+  #app{
+    max-width:480px;
+    margin:0 auto;
+    min-height:100vh;
+    background:var(--bg);
+    display:flex;
+    flex-direction:column;
+    position:relative;
+    padding-bottom:84px;
+  }
+  /* Top bar */
+  .topbar{
+    background:linear-gradient(135deg,var(--teal-700),var(--teal-900));
+    color:#fff;
+    padding:18px 20px 22px;
+    position:sticky;
+    top:0;
+    z-index:20;
+    box-shadow:var(--shadow);
+  }
+  .topbar-row{display:flex;align-items:center;gap:12px;}
+  .topbar-back{
+    background:rgba(255,255,255,0.15);
+    border:none;
+    color:#fff;
+    width:34px;height:34px;border-radius:50%;
+    font-size:18px;cursor:pointer;
+    display:flex;align-items:center;justify-content:center;
+    flex-shrink:0;
+  }
+  .topbar-title{font-size:18px;font-weight:600;line-height:1.3;}
+  .topbar-sub{font-size:12.5px;opacity:0.85;margin-top:2px;}
+  .stage-chip{
+    display:inline-block;margin-top:8px;
+    background:rgba(255,255,255,0.16);
+    border:1px solid rgba(255,255,255,0.3);
+    padding:4px 12px;border-radius:20px;
+    font-size:12.5px;
+  }
+
+  /* Content */
+  .view{padding:18px 18px 8px;flex:1;}
+  .hidden{display:none !important;}
+  .card{
+    background:var(--card);
+    border-radius:var(--radius);
+    padding:18px;
+    box-shadow:var(--shadow);
+    margin-bottom:16px;
+    border:1px solid var(--line);
+  }
+  .card h2{font-size:17px;margin:0 0 10px;color:var(--teal-900);}
+  .card h3{font-size:14.5px;margin:14px 0 6px;color:var(--teal-700);}
+  .card p{font-size:14.5px;line-height:1.65;color:var(--ink);margin:0 0 8px;}
+  .muted{color:var(--ink-soft);font-size:13px;}
+
+  /* Home grid (rich-menu mirror) */
+  .home-hero{
+    padding:4px 2px 18px;
+  }
+  .home-hero h1{font-size:20px;margin:0 0 4px;color:var(--teal-900);}
+  .home-hero p{font-size:13.5px;color:var(--ink-soft);margin:0;}
+  .menu-grid{
+    display:grid;
+    grid-template-columns:1fr 1fr;
+    gap:12px;
+    margin-top:16px;
+  }
+  .menu-btn{
+    background:var(--card);
+    border:1px solid var(--line);
+    border-radius:var(--radius);
+    padding:18px 12px;
+    text-align:center;
+    box-shadow:var(--shadow);
+    cursor:pointer;
+    display:flex;flex-direction:column;align-items:center;gap:8px;
+    transition:transform .12s ease;
+  }
+  .menu-btn:active{transform:scale(0.96);}
+  .menu-btn .ico{font-size:28px;}
+  .menu-btn .lbl{font-size:13.5px;font-weight:600;color:var(--teal-900);line-height:1.35;}
+  .menu-btn .num{
+    font-size:10.5px;color:#fff;background:var(--sage-400);
+    border-radius:8px;padding:1px 7px;font-weight:600;
+  }
+
+  /* Alert banner */
+  .alert-banner{
+    border-radius:14px;padding:14px 16px;margin-bottom:16px;
+    display:flex;gap:10px;align-items:flex-start;
+    font-size:13.5px;line-height:1.55;
+  }
+  .alert-banner.go{background:var(--go-bg);border:1px solid #bfe4cd;color:#245c3d;}
+  .alert-banner.caution{background:var(--caution-bg);border:1px solid #f0dba8;color:#7a5613;}
+  .alert-banner.stop{background:var(--stop-bg);border:1px solid #f3c3bd;color:#7d2e27;}
+  .alert-banner .dot{font-size:18px;line-height:1;}
+
+  /* Traffic light table */
+  .tl-row{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px;}
+  .tl-box{border-radius:12px;padding:12px;font-size:13.5px;line-height:1.6;}
+  .tl-box.green{background:var(--go-bg);border:1px solid #bfe4cd;}
+  .tl-box.red{background:var(--stop-bg);border:1px solid #f3c3bd;}
+  .tl-box .tl-title{font-weight:600;margin-bottom:6px;display:flex;align-items:center;gap:6px;}
+
+  /* Forms */
+  label{display:block;font-size:13.5px;font-weight:600;color:var(--teal-900);margin:12px 0 6px;}
+  input[type=text],input[type=number],input[type=date],input[type=tel],select,textarea{
+    width:100%;padding:11px 12px;border-radius:10px;border:1.5px solid var(--line);
+    font-family:'Sarabun',sans-serif;font-size:14.5px;background:#fbfdfb;color:var(--ink);
+  }
+  input:focus,select:focus,textarea:focus{outline:2px solid var(--sage-400);border-color:var(--sage-400);}
+  .field-row{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
+  .btn{
+    display:inline-flex;align-items:center;justify-content:center;gap:6px;
+    background:var(--teal-700);color:#fff;border:none;border-radius:12px;
+    padding:13px 18px;font-size:14.5px;font-weight:600;cursor:pointer;width:100%;
+    font-family:'Sarabun',sans-serif;
+  }
+  .btn:active{background:var(--teal-900);}
+  .btn.secondary{background:#fff;color:var(--teal-700);border:1.5px solid var(--teal-600);}
+  .btn.ghost{background:transparent;color:var(--ink-soft);box-shadow:none;border:1px dashed var(--line);}
+  .btn-row{display:flex;gap:10px;margin-top:14px;}
+  .btn-row .btn{width:auto;flex:1;}
+
+  /* Checklist */
+  .check-item{
+    display:flex;gap:10px;align-items:flex-start;padding:10px 0;border-bottom:1px solid var(--line);
+  }
+  .check-item:last-child{border-bottom:none;}
+  .check-item input{width:20px;height:20px;margin-top:2px;flex-shrink:0;}
+  .check-item span{font-size:14px;line-height:1.55;}
+
+  /* FAQ accordion */
+  .faq-item{border:1px solid var(--line);border-radius:12px;margin-bottom:8px;overflow:hidden;}
+  .faq-q{
+    padding:13px 14px;font-size:14px;font-weight:600;color:var(--teal-900);
+    display:flex;justify-content:space-between;align-items:center;cursor:pointer;background:#fbfdfb;
+  }
+  .faq-a{padding:0 14px;max-height:0;overflow:hidden;transition:all .2s ease;font-size:13.5px;line-height:1.6;color:var(--ink-soft);}
+  .faq-item.open .faq-a{padding:0 14px 14px;max-height:400px;}
+  .faq-item.open .chev{transform:rotate(180deg);}
+  .chev{transition:transform .2s ease;font-size:12px;}
+
+  /* Tracker history */
+  .hist-item{
+    border:1px solid var(--line);border-radius:12px;padding:12px 14px;margin-bottom:10px;font-size:13.5px;
+  }
+  .hist-item .hist-date{font-weight:600;color:var(--teal-900);margin-bottom:4px;}
+  .hist-grid{display:grid;grid-template-columns:1fr 1fr;gap:4px 12px;color:var(--ink-soft);}
+  .empty-state{text-align:center;padding:30px 10px;color:var(--ink-soft);font-size:13.5px;}
+  .empty-state .ico{font-size:32px;display:block;margin-bottom:8px;}
+
+  /* Bottom nav */
+  .bottomnav{
+    position:fixed;bottom:0;left:50%;transform:translateX(-50%);
+    width:100%;max-width:480px;
+    background:#fff;border-top:1px solid var(--line);
+    display:flex;justify-content:space-around;
+    padding:8px 4px 10px;
+    box-shadow:0 -4px 16px rgba(18,58,55,0.06);
+    z-index:20;
+  }
+  .nav-btn{
+    background:none;border:none;display:flex;flex-direction:column;align-items:center;gap:2px;
+    color:var(--ink-soft);font-family:'Sarabun',sans-serif;font-size:10.5px;cursor:pointer;
+    flex:1;padding:4px 2px;
+  }
+  .nav-btn .ico{font-size:19px;}
+  .nav-btn.active{color:var(--teal-700);font-weight:600;}
+
+  /* Onboarding */
+  .onb-progress{display:flex;gap:6px;margin-bottom:18px;}
+  .onb-progress div{flex:1;height:4px;border-radius:2px;background:rgba(255,255,255,0.25);}
+  .onb-progress div.done{background:#fff;}
+  .consent-box{
+    background:#fbfdfb;border:1px solid var(--line);border-radius:12px;padding:14px;
+    font-size:13px;line-height:1.7;color:var(--ink-soft);max-height:220px;overflow-y:auto;margin-bottom:14px;
+  }
+  .quiz-q{margin-bottom:18px;}
+  .quiz-q p{font-weight:600;color:var(--teal-900);margin-bottom:8px;font-size:14px;}
+  .quiz-opt{
+    display:flex;align-items:center;gap:10px;
+    border:1.5px solid var(--line);border-radius:10px;padding:12px 14px;margin-bottom:8px;
+    font-size:13.5px;cursor:pointer;background:#fbfdfb;
+    -webkit-tap-highlight-color:transparent;user-select:none;
+  }
+  .quiz-opt:active{transform:scale(0.98);}
+  .quiz-opt.selected{border-color:var(--teal-600);background:var(--go-bg);}
+  .quiz-dot{
+    width:20px;height:20px;border-radius:50%;border:2px solid var(--line);flex-shrink:0;
+    position:relative;background:#fff;
+  }
+  .quiz-opt.selected .quiz-dot{border-color:var(--teal-700);}
+  .quiz-opt.selected .quiz-dot::after{
+    content:'';position:absolute;inset:3px;border-radius:50%;background:var(--teal-700);
+  }
+  .consent-toggle{
+    display:flex;align-items:flex-start;gap:10px;
+    border:1.5px solid var(--line);border-radius:12px;padding:13px 14px;margin-bottom:6px;
+    cursor:pointer;background:#fbfdfb;-webkit-tap-highlight-color:transparent;user-select:none;
+  }
+  .consent-toggle:active{transform:scale(0.99);}
+  .consent-toggle.checked{border-color:var(--teal-600);background:var(--go-bg);}
+  .consent-dot{
+    width:22px;height:22px;border-radius:6px;border:2px solid var(--line);flex-shrink:0;
+    position:relative;background:#fff;margin-top:1px;
+  }
+  .consent-toggle.checked .consent-dot{background:var(--teal-700);border-color:var(--teal-700);}
+  .consent-toggle.checked .consent-dot::after{
+    content:'✓';color:#fff;position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:700;
+  }
+
+  .pill{display:inline-block;font-size:11.5px;padding:3px 10px;border-radius:20px;background:var(--sage-200);color:var(--teal-900);font-weight:600;margin-bottom:8px;}
+  a.tel-link{color:var(--teal-700);font-weight:600;text-decoration:none;}
+</style>
+</head>
+<body>
+<div id="app">
+
+  <!-- ============ TOP BAR ============ -->
+  <div class="topbar">
+    <div class="topbar-row">
+      <button class="topbar-back" id="backBtn" style="display:none" onclick="goHome()">‹</button>
+      <div>
+        <div class="topbar-title" id="topTitle">ดูแลไตเรื้อรัง ระยะ 3-4</div>
+        <div class="topbar-sub" id="topSub">คลินิกโรคไต · โรงพยาบาลสูงเม่น</div>
+      </div>
+    </div>
+    <div id="stageChipWrap"></div>
+  </div>
+
+  <!-- ============ LOADING (shown briefly on first paint / re-open) ============ -->
+  <div class="view" id="view-loading">
+    <div class="card" style="text-align:center;padding:50px 20px;">
+      <div style="font-size:30px;margin-bottom:10px;">⏳</div>
+      <p class="muted">กำลังโหลดข้อมูล...</p>
+    </div>
+  </div>
+
+  <!-- ============ ONBOARDING ============ -->
+  <div class="view hidden" id="view-onboarding">
+    <div class="card" id="onb-step1">
+      <div class="pill">ขั้นตอนที่ 1 จาก 3</div>
+      <h2>📄 ยินยอมเข้าร่วมโครงการ</h2>
+      <p>ก่อนเริ่มใช้งาน กรุณาอ่านข้อความชี้แจงด้านล่าง เพื่อขอความยินยอมในการเก็บข้อมูลสุขภาพของท่าน สำหรับใช้ในการดูแลและงานวิจัยของคลินิกโรคไตเรื้อรัง</p>
+      <div class="consent-box">
+        <b>วัตถุประสงค์:</b> แอปนี้จัดทำขึ้นเพื่อให้ความรู้และติดตามอาการของผู้ป่วยโรคไตเรื้อรัง ระยะที่ 3-4 รวมถึงเก็บข้อมูลผลตรวจและอาการที่ท่านบันทึกด้วยตนเอง เพื่อนำไปใช้ปรับปรุงการดูแลรักษาและการศึกษาวิจัยของคลินิก<br><br>
+        <b>ข้อมูลที่จัดเก็บ:</b> ระยะของโรค ค่า eGFR ความดันโลหิต น้ำหนักตัว และผลตรวจเลือด/ปัสสาวะที่ท่านบันทึกเอง<br><br>
+        <b>สิทธิของท่าน:</b> ท่านสามารถขอยกเลิกการเข้าร่วม หรือขอให้ลบข้อมูลได้ตลอดเวลา โดยไม่มีผลต่อการรักษาที่ท่านได้รับ ข้อมูลจะถูกเก็บเป็นความลับตามมาตรฐานจริยธรรมการวิจัย
+      </div>
+      <div class="consent-toggle" id="consentToggle" onclick="toggleConsent()">
+        <span class="consent-dot" id="consentDot"></span>
+        <span style="font-size:13.5px;">ข้าพเจ้าได้อ่านและเข้าใจข้อความข้างต้น และยินยอมเข้าร่วมโครงการโดยสมัครใจ</span>
+      </div>
+      <button class="btn" style="margin-top:10px" onclick="submitConsent()">ยืนยันและถัดไป</button>
+    </div>
+
+    <div class="card hidden" id="onb-step2">
+      <div class="pill">ขั้นตอนที่ 2 จาก 3</div>
+      <h2>🩺 ข้อมูลระยะของโรค</h2>
+      <p>กรุณาระบุระยะของโรคไตเรื้อรังและค่า eGFR ล่าสุดของท่าน (ดูได้จากใบผลตรวจเลือดครั้งล่าสุด)</p>
+      <label>ระยะของโรคไตเรื้อรัง</label>
+      <select id="stageSelect">
+        <option value="">-- เลือกระยะ --</option>
+        <option value="3a">ระยะ 3a (eGFR 45-59)</option>
+        <option value="3b">ระยะ 3b (eGFR 30-44)</option>
+        <option value="4">ระยะ 4 (eGFR 15-29)</option>
+      </select>
+      <label>ชื่อเล่น/รหัสผู้ป่วย (ไม่บังคับ)</label>
+      <input type="text" id="patientName" placeholder="เช่น พี่นิด หรือ รหัส 001">
+      <label>ค่า eGFR ล่าสุด (mL/min/1.73m²)</label>
+      <input type="number" id="egfrInput" placeholder="เช่น 38">
+      <div class="btn-row">
+        <button class="btn secondary" onclick="onbBack(1)">ย้อนกลับ</button>
+        <button class="btn" onclick="submitStage()">ถัดไป</button>
+      </div>
+    </div>
+
+    <div class="card hidden" id="onb-step3">
+      <div class="pill">ขั้นตอนที่ 3 จาก 3</div>
+      <h2>📝 แบบทดสอบความรู้เบื้องต้น</h2>
+      <p class="muted">แบบประเมินสั้นๆ ก่อนเริ่มใช้งาน เพื่อดูความรู้พื้นฐานเรื่องการดูแลตัวเองของท่าน (ตอบผิดไม่เป็นไร ใช้เพื่อประเมินเท่านั้น)</p>
+      <div id="quizWrap"></div>
+      <button class="btn" style="margin-top:6px" onclick="submitQuiz()">เริ่มใช้งานแอป</button>
+    </div>
+  </div>
+
+  <!-- ============ HOME ============ -->
+  <div class="view hidden" id="view-home">
+    <div class="home-hero">
+      <h1 id="greetName">สวัสดีค่ะ 👋</h1>
+      <p>เลือกหัวข้อที่ต้องการจากเมนูด้านล่าง เหมือนปุ่มบน LINE ของเรา</p>
+    </div>
+    <div id="homeAlertSlot"></div>
+    <div class="menu-grid">
+      <div class="menu-btn" onclick="nav('food')"><span class="ico">🥗</span><span class="lbl">อาหารชะลอไตเสื่อม</span><span class="num">1</span></div>
+      <div class="menu-btn" onclick="nav('veg')"><span class="ico">🥒</span><span class="lbl">ตารางผัก-ผลไม้</span><span class="num">2</span></div>
+      <div class="menu-btn" onclick="nav('med')"><span class="ico">💊</span><span class="lbl">ยา &amp; ข้อควรระวัง</span><span class="num">3</span></div>
+      <div class="menu-btn" onclick="nav('tracker')"><span class="ico">📊</span><span class="lbl">บันทึกผลเลือด/ความดัน</span><span class="num">4</span></div>
+      <div class="menu-btn" onclick="nav('faq')"><span class="ico">❓</span><span class="lbl">คำถามพบบ่อยโรคไต</span><span class="num">5</span></div>
+      <div class="menu-btn" onclick="nav('contact')"><span class="ico">📞</span><span class="lbl">ติดต่อคลินิก CKD</span><span class="num">6</span></div>
+    </div>
+  </div>
+
+  <!-- ============ 1. FOOD GUIDE ============ -->
+  <div class="view hidden" id="view-food">
+    <div class="card">
+      <h2>🍳 คุมโปรตีนตามระยะ</h2>
+      <p>เพื่อลดภาระงานของไต ระยะ 3-4 แนะนำโปรตีนประมาณ <b>0.6-0.8 กรัม/กก./วัน</b> โดยเน้นโปรตีนคุณภาพสูง ย่อยง่าย ให้กรดอะมิโนจำเป็นครบถ้วน</p>
+      <h3>เลือกทานโปรตีนคุณภาพสูง</h3>
+      <p>ไข่ขาว · เนื้อปลา · เนื้ออกไก่ (ลดหนัง/มัน) — หลีกเลี่ยงเครื่องในสัตว์และเนื้อแปรรูป</p>
+    </div>
+    <div class="card">
+      <h2>🧂 คุมเค็ม ลดโซเดียม</h2>
+      <p>ความดันโลหิตสูงเร่งการเสื่อมของไต การลดเค็มช่วยชะลอโรคและควบคุมความดันได้ดีขึ้น</p>
+      <h3>เทคนิคหลีกเลี่ยง</h3>
+      <p>เครื่องปรุงรส (น้ำปลา ซีอิ๊ว ผงชูรส) · อาหารแปรรูป · ของหมักดอง · ซุปก้อน/ผงปรุงรสสำเร็จรูป</p>
+    </div>
+    <div class="card">
+      <h2>💧 การดื่มน้ำ</h2>
+      <p>หากยังไม่มีอาการบวม สามารถดื่มน้ำได้ตามปกติ ประมาณ <b>1.5 - 2 ลิตร/วัน</b> หากเริ่มมีอาการบวมหรือปัสสาวะออกน้อยลง ควรปรึกษาแพทย์เรื่องปริมาณน้ำที่เหมาะสม</p>
+    </div>
+    <div class="card">
+      <h2>🥑 คุมโพแทสเซียม &amp; ฟอสฟอรัส</h2>
+      <p>ดูรายละเอียดตารางผัก-ผลไม้แยกสีได้ที่เมนู <b>"ตารางผัก-ผลไม้"</b></p>
+      <h3>การคุมฟอสฟอรัส</h3>
+      <p>หลีกเลี่ยงนม ไข่แดง ถั่วต่างๆ และอาหารที่มีสารเติมแต่งฟอสเฟต (อาหารแปรรูป ขนมกรุบกรอบ น้ำอัดลมสีเข้ม)</p>
+    </div>
+  </div>
+
+  <!-- ============ 2. VEGETABLE TRAFFIC LIGHT ============ -->
+  <div class="view hidden" id="view-veg">
+    <div class="card">
+      <h2>🥒 ตารางผัก-ผลไม้ (ไฟจราจร)</h2>
+      <p class="muted">แยกตามระดับโพแทสเซียม เพื่อให้เลือกทานได้ง่ายขึ้น</p>
+      <div class="tl-row">
+        <div class="tl-box green">
+          <div class="tl-title">🟢 ทานได้ (โพแทสเซียมต่ำ)</div>
+          กะหล่ำปลี · ผักกาดขาว · แตงกวา · แตงร้าน · ถั่วฝักยาว (ปริมาณพอเหมาะ)
+        </div>
+        <div class="tl-box red">
+          <div class="tl-title">🔴 ควรเลี่ยง (โพแทสเซียมสูง)</div>
+          ฟักทอง · คะน้า · มะเขือเทศ · กล้วย · ผักโขม · มันฝรั่ง
+        </div>
+      </div>
+      <p class="muted">* หากไม่แน่ใจปริมาณที่เหมาะสมสำหรับตัวท่าน ควรปรึกษานักโภชนาการหรือพยาบาลคลินิก CKD</p>
+    </div>
+  </div>
+
+  <!-- ============ 3. MEDICATION & SYMPTOMS ============ -->
+  <div class="view hidden" id="view-med">
+    <div class="card">
+      <h2>💊 ยาอันตรายต่อไต</h2>
+      <div class="alert-banner stop"><span class="dot">⚠️</span><span>ห้ามซื้อยากลุ่มนี้ทานเองโดยไม่ปรึกษาแพทย์หรือเภสัชกร</span></div>
+      <h3>ยาแก้ปวดกลุ่ม NSAIDs</h3>
+      <p>Ibuprofen · Naproxen · Mefenamic acid (Ponstan) และยาแก้ปวดข้อ/ชุดยาแก้ปวดทั่วไป</p>
+      <h3>สมุนไพร / ยาลูกกลอน / อาหารเสริม</h3>
+      <p>ระวังผลิตภัณฑ์ที่ไม่มีเลขทะเบียน อย. หรือไม่ทราบส่วนประกอบชัดเจน อาจมีผลต่อค่าการทำงานของไต</p>
+    </div>
+    <div class="card">
+      <h2>🔍 สังเกตอาการผิดปกติ</h2>
+      <div class="check-item"><input type="checkbox"><span>บวมกดบุ๋มบริเวณหน้าแข้ง/ข้อเท้า</span></div>
+      <div class="check-item"><input type="checkbox"><span>ปัสสาวะเป็นฟองหนา หรือมีเลือดปน</span></div>
+      <div class="check-item"><input type="checkbox"><span>อ่อนเพลียผิดปกติ</span></div>
+      <div class="check-item"><input type="checkbox"><span>ความดันโลหิตสูงควบคุมได้ยาก</span></div>
+      <p class="muted" style="margin-top:10px;">หากมีข้อใดข้อหนึ่ง ควรติดต่อคลินิก CKD เพื่อรับคำแนะนำ</p>
+    </div>
+  </div>
+
+  <!-- ============ 4. TRACKER ============ -->
+  <div class="view hidden" id="view-tracker">
+    <div id="trackerAlertSlot"></div>
+    <div class="card">
+      <h2>📊 บันทึกผลเลือด/ความดัน</h2>
+      <div class="muted" id="syncStatus" style="margin:-4px 0 10px;">–</div>
+      <label>วันที่บันทึก</label>
+      <input type="date" id="t-date">
+      <div class="field-row">
+        <div><label>ความดันตัวบน (mmHg)</label><input type="number" id="t-sbp" placeholder="เช่น 130"></div>
+        <div><label>ความดันตัวล่าง (mmHg)</label><input type="number" id="t-dbp" placeholder="เช่น 80"></div>
+      </div>
+      <label>น้ำหนักตัว (กก.)</label>
+      <input type="number" step="0.1" id="t-weight" placeholder="เช่น 62.5">
+      <h3>ผลตรวจเลือด/ปัสสาวะ (ถ้ามี — ไม่บังคับ)</h3>
+      <div class="field-row">
+        <div><label>eGFR</label><input type="number" id="t-egfr"></div>
+        <div><label>Creatinine</label><input type="number" step="0.01" id="t-cr"></div>
+      </div>
+      <div class="field-row">
+        <div><label>BUN</label><input type="number" id="t-bun"></div>
+        <div><label>Potassium (K)</label><input type="number" step="0.1" id="t-k"></div>
+      </div>
+      <div class="field-row">
+        <div><label>Bicarbonate</label><input type="number" id="t-bicarb"></div>
+        <div><label>Urine Protein (UPCR/UACR)</label><input type="number" step="0.01" id="t-upcr"></div>
+      </div>
+      <button class="btn" style="margin-top:16px" onclick="saveTracker()">บันทึกข้อมูล</button>
+    </div>
+    <div class="card">
+      <h2>ประวัติการบันทึก</h2>
+      <div id="historyList"></div>
+    </div>
+  </div>
+
+  <!-- ============ 5. FAQ ============ -->
+  <div class="view hidden" id="view-faq">
+    <div class="card">
+      <h2>❓ คำถามพบบ่อยโรคไต</h2>
+      <div id="faqList"></div>
+    </div>
+  </div>
+
+  <!-- ============ 6. CONTACT ============ -->
+  <div class="view hidden" id="view-contact">
+    <div class="card">
+      <h2>📞 ติดต่อคลินิก CKD</h2>
+      <p>คลินิกโรคไตเรื้อรัง โรงพยาบาลสูงเม่น</p>
+      <h3>เบอร์โทรศัพท์คลินิก</h3>
+      <p><a class="tel-link" href="tel:0000000000">0-000-000-000 (แก้ไขเบอร์จริงในโค้ด)</a></p>
+      <h3>พยาบาลผู้ดูแล</h3>
+      <p>ในเวลาราชการ จันทร์-ศุกร์ 08:30-16:30 น.</p>
+      <h3>กรณีฉุกเฉิน</h3>
+      <p>หากมีอาการเร่งด่วน (บวมมาก หายใจลำบาก ความดันสูงมาก) ควรไปห้องฉุกเฉินทันที ไม่ต้องรอนัด</p>
+      <button class="btn secondary" onclick="location.href='tel:0000000000'">โทรหาคลินิกตอนนี้</button>
+    </div>
+  </div>
+
+  <!-- ============ BOTTOM NAV ============ -->
+  <div class="bottomnav hidden" id="bottomnav">
+    <button class="nav-btn" data-v="home" onclick="nav('home')"><span class="ico">🏠</span>หน้าหลัก</button>
+    <button class="nav-btn" data-v="food" onclick="nav('food')"><span class="ico">🥗</span>อาหาร</button>
+    <button class="nav-btn" data-v="tracker" onclick="nav('tracker')"><span class="ico">📊</span>บันทึก</button>
+    <button class="nav-btn" data-v="faq" onclick="nav('faq')"><span class="ico">❓</span>คำถาม</button>
+    <button class="nav-btn" data-v="contact" onclick="nav('contact')"><span class="ico">📞</span>ติดต่อ</button>
+  </div>
+
+</div>
+
+<script>
+/* ---------- config ----------
+   1) LIFF_ID: จาก LINE Developers Console > สร้าง LIFF app ผูกกับ LINE OA ของคุณ
+      (ใช้เพื่อรู้ว่าเป็นผู้ป่วยคนไหนตอนเปิดจากแชท LINE — ไม่ใส่ก็ใช้งานได้ปกติ
+      แต่จะแยกผู้ป่วยด้วยรหัสอุปกรณ์แทน)
+   2) APPS_SCRIPT_URL: URL ของ Google Apps Script Web App ที่ deploy จาก
+      apps-script-ckd-sync.gs (ไฟล์แนบ) — ใช้ส่งข้อมูลไปเก็บใน Google Sheet
+      เพื่องานวิจัย ไม่ใส่ก็ใช้งานได้ปกติ แต่ข้อมูลจะอยู่ในเครื่องผู้ป่วยเท่านั้น
+------------------------------- */
+const CONFIG = {
+  LIFF_ID: '2011023822-78Nsj55v',
+  APPS_SCRIPT_URL: 'https://script.google.com/macros/s/AKfycbyvhcbCdBkX6kQMjNBjAcMnauBldfewHBE30usMKhOj36SpPB3Bh7A6UJPB0qvmSHmGxw/exec'
+};
+let currentUserId = null;
+
+/* ---------- data ---------- */
+const QUIZ = [
+  {q:"ผู้ป่วยโรคไตเรื้อรังระยะ 3-4 ควรจำกัดโปรตีนประมาณเท่าใดต่อวัน?",
+   opts:["1.5-2 กรัม/กก.","0.6-0.8 กรัม/กก.","ไม่ต้องจำกัด"], correct:1},
+  {q:"ยาแก้ปวดกลุ่มใดที่ควรหลีกเลี่ยงเพราะอันตรายต่อไต?",
+   opts:["พาราเซตามอลตามขนาดที่แนะนำ","กลุ่ม NSAIDs เช่น Ibuprofen","วิตามินซี"], correct:1},
+  {q:"หากน้ำหนักตัวเพิ่มขึ้นเร็วผิดปกติ (>2 กก. ในไม่กี่วัน) ควรทำอย่างไร?",
+   opts:["ไม่ต้องสนใจ รอดูอาการ","ลดเค็มและติดต่อคลินิก","ดื่มน้ำเพิ่มทันที"], correct:1}
+];
+
+const FAQ = [
+  {q:"อาการบวมที่ขาหรือเท้า เกิดจากอะไร และอันตรายหรือไม่?",
+   a:"มักเกิดจากร่างกายคั่งเกลือและน้ำเมื่อไตทำงานลดลง หากบวมกดบุ๋ม บวมเพิ่มเร็ว หรือบวมร่วมกับความดันสูง ควรแจ้งคลินิกโดยเร็ว"},
+  {q:"ปัสสาวะเป็นฟองมาก หมายความว่าอย่างไร?",
+   a:"อาจบ่งชี้ว่ามีโปรตีนรั่วในปัสสาวะมากขึ้น ควรสังเกตต่อเนื่องและแจ้งแพทย์เมื่อมาตรวจตามนัด หรือเร็วขึ้นหากฟองมากผิดปกติ"},
+  {q:"ตัวเหลือง ตาเหลือง เกี่ยวกับโรคไตหรือไม่?",
+   a:"อาการตัวเหลืองมักเกี่ยวกับตับหรือทางเดินน้ำดีมากกว่าไตโดยตรง หากมีอาการนี้ควรพบแพทย์เพื่อตรวจแยกสาเหตุ"},
+  {q:"ทานโปรตีนน้อยเกินไป จะเป็นอันตรายหรือไม่?",
+   a:"การจำกัดโปรตีนต้องอยู่ในระดับที่เหมาะสม (0.6-0.8 กรัม/กก./วัน) หากน้อยเกินไปอาจทำให้ขาดสารอาหารและกล้ามเนื้อลีบ ควรปรึกษานักโภชนาการ"},
+  {q:"ทำไมต้องคุมโพแทสเซียมและฟอสฟอรัส?",
+   a:"เมื่อไตทำงานลดลง ร่างกายขับโพแทสเซียมและฟอสฟอรัสได้น้อยลง ค่าที่สูงเกินไปอาจทำให้หัวใจเต้นผิดจังหวะและกระดูกเสื่อมเร็วขึ้น"},
+  {q:"ต้องมาตรวจตามนัดบ่อยแค่ไหน?",
+   a:"ขึ้นกับดุลยพินิจแพทย์และระยะของโรค โดยทั่วไประยะ 3-4 มักนัดตรวจทุก 3-6 เดือน หรือถี่ขึ้นหากค่าการทำงานของไตเปลี่ยนแปลงเร็ว"}
+];
+
+const VIEWS = ['loading','onboarding','home','food','veg','med','tracker','faq','contact'];
+const TITLES = {
+  home:['ดูแลไตเรื้อรัง ระยะ 3-4','คลินิกโรคไต · โรงพยาบาลสูงเม่น'],
+  food:['อาหารชะลอไตเสื่อม','โภชนาการสำหรับระยะ 3-4'],
+  veg:['ตารางผัก-ผลไม้','แยกตามระดับโพแทสเซียม'],
+  med:['ยา & ข้อควรระวัง','ความปลอดภัยเรื่องยาและอาการ'],
+  tracker:['บันทึกผลเลือด/ความดัน','สำหรับติดตามอาการและงานวิจัย'],
+  faq:['คำถามพบบ่อยโรคไต','รวมคำถาม-คำตอบที่พบบ่อย'],
+  contact:['ติดต่อคลินิก CKD','โรงพยาบาลสูงเม่น']
+};
+
+/* ---------- storage helpers ---------- */
+const store = {
+  get(k, fallback){ try{ const v = localStorage.getItem(k); return v ? JSON.parse(v) : fallback; }catch(e){ return fallback; } },
+  set(k, v){ try{ localStorage.setItem(k, JSON.stringify(v)); }catch(e){} }
+};
+
+/* ---------- navigation (with deep-link support via #hash, for Rich Menu buttons) ---------- */
+function showView(id){
+  VIEWS.forEach(v => document.getElementById('view-'+v).classList.add('hidden'));
+  document.getElementById('view-'+id).classList.remove('hidden');
+}
+function nav(id, updateHash){
+  if(updateHash === undefined) updateHash = true;
+  showView(id);
+  document.getElementById('backBtn').style.display = id==='home' ? 'none' : 'flex';
+  const t = TITLES[id] || TITLES.home;
+  document.getElementById('topTitle').textContent = t[0];
+  document.getElementById('topSub').textContent = t[1];
+  document.querySelectorAll('.nav-btn').forEach(b=>b.classList.toggle('active', b.dataset.v===id));
+  window.scrollTo(0,0);
+  if(id==='tracker'){ renderHistory(); updateSyncStatus(); flushSyncQueue(); }
+  if(id==='faq') renderFaq();
+  if(id==='home') renderHome();
+  renderIdentityBadge();
+  if(updateHash && id!=='onboarding') location.hash = id;
+}
+
+/* ---------- identity badge (always visible in header, so it's clear whose data this is) ---------- */
+function renderIdentityBadge(){
+  const chipWrap = document.getElementById('stageChipWrap');
+  if(!chipWrap) return;
+  const lineProfile = store.get('ckd_line_profile', null);
+  const profile = store.get('ckd_profile', {});
+  const stageMap = {'3a':'ระยะ 3a','3b':'ระยะ 3b','4':'ระยะ 4'};
+  const displayName = (lineProfile && lineProfile.displayName) || profile.name || '';
+  const stageTxt = profile.stage ? (stageMap[profile.stage] || '') : '';
+  let chips = '';
+  if(displayName){
+    chips += `<span class="stage-chip">👤 ${displayName}</span> `;
+  } else {
+    chips += `<span class="stage-chip">👤 รหัสอุปกรณ์ ${(currentUserId||'').slice(-6)}</span> `;
+  }
+  if(stageTxt){
+    chips += `<span class="stage-chip">${stageTxt}${profile.egfr ? ' · eGFR ' + profile.egfr : ''}</span>`;
+  }
+  chipWrap.innerHTML = chips;
+}
+function goHome(){ nav('home'); }
+window.addEventListener('hashchange', function(){
+  const id = location.hash.replace('#','');
+  const onboarded = store.get('ckd_onboarded', false);
+  if(onboarded && VIEWS.includes(id) && id!=='onboarding'){
+    nav(id, false);
+  }
+});
+
+/* ---------- onboarding ---------- */
+let consentAgreed = false;
+function toggleConsent(){
+  consentAgreed = !consentAgreed;
+  document.getElementById('consentToggle').classList.toggle('checked', consentAgreed);
+}
+function onbBack(step){
+  document.getElementById('onb-step2').classList.add('hidden');
+  document.getElementById('onb-step'+step).classList.remove('hidden');
+}
+function submitConsent(){
+  if(!consentAgreed){
+    alert('กรุณาแตะที่ข้อความยินยอมเพื่อยืนยันก่อนดำเนินการต่อ');
+    return;
+  }
+  const consent = {agreed:true, date:new Date().toISOString()};
+  store.set('ckd_consent', consent);
+  queueSync('consent', consent);
+  document.getElementById('onb-step1').classList.add('hidden');
+  document.getElementById('onb-step2').classList.remove('hidden');
+}
+function submitStage(){
+  const stage = document.getElementById('stageSelect').value;
+  if(!stage){ alert('กรุณาเลือกระยะของโรค'); return; }
+  const profile = {
+    stage,
+    name: document.getElementById('patientName').value.trim(),
+    egfr: document.getElementById('egfrInput').value,
+    createdAt: new Date().toISOString()
+  };
+  store.set('ckd_profile', profile);
+  queueSync('profile', profile);
+  document.getElementById('onb-step2').classList.add('hidden');
+  document.getElementById('onb-step3').classList.remove('hidden');
+  renderQuiz();
+}
+let quizAnswers = {};
+function renderQuiz(){
+  quizAnswers = {};
+  const wrap = document.getElementById('quizWrap');
+  wrap.innerHTML = QUIZ.map((item,i)=>`
+    <div class="quiz-q">
+      <p>${i+1}. ${item.q}</p>
+      ${item.opts.map((o,j)=>`
+        <div class="quiz-opt" data-q="${i}" data-opt="${j}" onclick="selectQuizOption(${i},${j})">
+          <span class="quiz-dot"></span><span>${o}</span>
+        </div>
+      `).join('')}
+    </div>
+  `).join('');
+}
+function selectQuizOption(qIndex, optIndex){
+  quizAnswers[qIndex] = optIndex;
+  document.querySelectorAll(`.quiz-opt[data-q="${qIndex}"]`).forEach(function(el){
+    el.classList.toggle('selected', parseInt(el.dataset.opt, 10) === optIndex);
+  });
+}
+function submitQuiz(){
+  if(Object.keys(quizAnswers).length < QUIZ.length){
+    alert('กรุณาเลือกคำตอบให้ครบทุกข้อก่อนเริ่มใช้งาน');
+    return;
+  }
+  let score = 0;
+  QUIZ.forEach((item,i)=>{
+    if(quizAnswers[i] === item.correct) score++;
+  });
+  const pretest = {score, total:QUIZ.length, date:new Date().toISOString()};
+  store.set('ckd_pretest', pretest);
+  queueSync('pretest', pretest);
+  store.set('ckd_onboarded', true);
+  document.getElementById('bottomnav').classList.remove('hidden');
+  nav('home');
+}
+
+/* ---------- home ---------- */
+function renderHome(){
+  const profile = store.get('ckd_profile', {});
+  const lineProfile = store.get('ckd_line_profile', null);
+  const greetTarget = (lineProfile && lineProfile.displayName) || profile.name;
+  const nameTxt = greetTarget ? `สวัสดีค่ะ ${greetTarget} 👋` : 'สวัสดีค่ะ 👋';
+  document.getElementById('greetName').textContent = nameTxt;
+
+  const alerts = store.get('ckd_alerts', []);
+  const slot = document.getElementById('homeAlertSlot');
+  if(alerts.length){
+    const latest = alerts[alerts.length-1];
+    slot.innerHTML = `<div class="alert-banner stop"><span class="dot">⚠️</span><span>${latest}</span></div>`;
+  } else {
+    slot.innerHTML = '';
+  }
+}
+
+/* ---------- tracker ---------- */
+function saveTracker(){
+  const date = document.getElementById('t-date').value || new Date().toISOString().slice(0,10);
+  const entry = {
+    date,
+    sbp: document.getElementById('t-sbp').value,
+    dbp: document.getElementById('t-dbp').value,
+    weight: document.getElementById('t-weight').value,
+    egfr: document.getElementById('t-egfr').value,
+    cr: document.getElementById('t-cr').value,
+    bun: document.getElementById('t-bun').value,
+    k: document.getElementById('t-k').value,
+    bicarb: document.getElementById('t-bicarb').value,
+    upcr: document.getElementById('t-upcr').value
+  };
+  if(!entry.sbp && !entry.weight){
+    alert('กรุณากรอกความดันโลหิตหรือน้ำหนักตัวอย่างน้อยหนึ่งรายการ');
+    return;
+  }
+  const history = store.get('ckd_tracker', []);
+  history.push(entry);
+  store.set('ckd_tracker', history);
+  queueSync('tracker', entry);
+  checkAlerts(entry, history);
+  ['t-sbp','t-dbp','t-weight','t-egfr','t-cr','t-bun','t-k','t-bicarb','t-upcr'].forEach(id=>document.getElementById(id).value='');
+  document.getElementById('t-date').value='';
+  renderHistory();
+}
+
+function checkAlerts(entry, history){
+  const msgs = [];
+  const sbp = parseFloat(entry.sbp);
+  if(sbp >= 160){
+    msgs.push('ความดันโลหิตตัวบนสูงมาก (≥160 mmHg) — กรุณาลดเค็มและติดต่อคลินิก CKD โดยเร็ว');
+  } else if(sbp >= 140){
+    msgs.push('ความดันโลหิตตัวบนสูงกว่าเป้าหมาย (≥140 mmHg) — แนะนำลดเค็มและติดตามอาการใกล้ชิด');
+  }
+  const w = parseFloat(entry.weight);
+  if(w && history.length >= 2){
+    const prev = history[history.length-2];
+    const prevW = parseFloat(prev.weight);
+    if(prevW && (w - prevW) >= 2){
+      msgs.push('น้ำหนักตัวเพิ่มขึ้นเร็ว (≥2 กก. จากครั้งก่อน) — อาจมีภาวะบวมน้ำ ควรลดเค็มและติดต่อคลินิก CKD');
+    }
+  }
+  if(msgs.length){
+    const all = store.get('ckd_alerts', []);
+    all.push(...msgs);
+    store.set('ckd_alerts', all);
+    msgs.forEach(m => queueSync('alert', {msg:m, entryDate:entry.date}));
+    const slot = document.getElementById('trackerAlertSlot');
+    slot.innerHTML = msgs.map(m=>`<div class="alert-banner stop"><span class="dot">⚠️</span><span>${m}</span></div>`).join('');
+  }
+}
+
+function renderHistory(){
+  const history = store.get('ckd_tracker', []).slice().reverse();
+  const wrap = document.getElementById('historyList');
+  if(!history.length){
+    wrap.innerHTML = `<div class="empty-state"><span class="ico">📋</span>ยังไม่มีข้อมูลบันทึก<br>เริ่มบันทึกค่าความดันหรือน้ำหนักได้จากฟอร์มด้านบน</div>`;
+    return;
+  }
+  wrap.innerHTML = history.slice(0,10).map(h=>`
+    <div class="hist-item">
+      <div class="hist-date">📅 ${h.date}</div>
+      <div class="hist-grid">
+        ${h.sbp ? `<div>BP: ${h.sbp}/${h.dbp||'-'} mmHg</div>`:''}
+        ${h.weight ? `<div>น้ำหนัก: ${h.weight} กก.</div>`:''}
+        ${h.egfr ? `<div>eGFR: ${h.egfr}</div>`:''}
+        ${h.cr ? `<div>Cr: ${h.cr}</div>`:''}
+        ${h.bun ? `<div>BUN: ${h.bun}</div>`:''}
+        ${h.k ? `<div>K: ${h.k}</div>`:''}
+        ${h.bicarb ? `<div>Bicarb: ${h.bicarb}</div>`:''}
+        ${h.upcr ? `<div>UPCR/UACR: ${h.upcr}</div>`:''}
+      </div>
+    </div>
+  `).join('');
+}
+
+/* ---------- faq ---------- */
+function renderFaq(){
+  const wrap = document.getElementById('faqList');
+  if(wrap.dataset.rendered) return;
+  wrap.innerHTML = FAQ.map((f,i)=>`
+    <div class="faq-item" id="faq-${i}">
+      <div class="faq-q" onclick="toggleFaq(${i})"><span>${f.q}</span><span class="chev">▾</span></div>
+      <div class="faq-a">${f.a}</div>
+    </div>
+  `).join('');
+  wrap.dataset.rendered = '1';
+}
+function toggleFaq(i){
+  document.getElementById('faq-'+i).classList.toggle('open');
+}
+
+/* ---------- LINE LIFF identity ---------- */
+function getOrCreateDeviceId(){
+  let id = store.get('ckd_device_id', null);
+  if(!id){
+    id = 'dev-' + Math.random().toString(36).slice(2,10) + Date.now().toString(36);
+    store.set('ckd_device_id', id);
+  }
+  return id;
+}
+async function initLiff(){
+  const hasLiffConfig = CONFIG.LIFF_ID && !CONFIG.LIFF_ID.includes('YOUR_');
+  if(!hasLiffConfig || typeof liff === 'undefined'){
+    currentUserId = getOrCreateDeviceId();
+    return;
+  }
+  try{
+    await liff.init({liffId: CONFIG.LIFF_ID});
+    if(!liff.isLoggedIn()){ liff.login(); return; }
+    const profile = await liff.getProfile();
+    currentUserId = profile.userId;
+    store.set('ckd_line_profile', {userId: profile.userId, displayName: profile.displayName});
+  }catch(e){
+    console.warn('LIFF init failed, falling back to device id', e);
+    currentUserId = getOrCreateDeviceId();
+  }
+}
+
+/* ---------- sync to Google Sheet (via apps-script-ckd-sync.gs) ---------- */
+function queueSync(type, payload){
+  const queue = store.get('ckd_sync_queue', []);
+  queue.push({type, payload, ts: Date.now()});
+  store.set('ckd_sync_queue', queue);
+  flushSyncQueue();
+}
+async function flushSyncQueue(){
+  const hasSyncConfig = CONFIG.APPS_SCRIPT_URL && !CONFIG.APPS_SCRIPT_URL.includes('YOUR_');
+  updateSyncStatus();
+  if(!hasSyncConfig) return;
+  let queue = store.get('ckd_sync_queue', []);
+  if(!queue.length) return;
+  const remaining = [];
+  for(const item of queue){
+    try{
+      await fetch(CONFIG.APPS_SCRIPT_URL, {
+        method: 'POST',
+        headers: {'Content-Type': 'text/plain;charset=utf-8'},
+        body: JSON.stringify({type:item.type, payload:item.payload, patientId: currentUserId, ts:item.ts})
+      });
+    }catch(e){
+      remaining.push(item);
+    }
+  }
+  store.set('ckd_sync_queue', remaining);
+  updateSyncStatus();
+}
+function updateSyncStatus(){
+  const el = document.getElementById('syncStatus');
+  if(!el) return;
+  const hasSyncConfig = CONFIG.APPS_SCRIPT_URL && !CONFIG.APPS_SCRIPT_URL.includes('YOUR_');
+  if(!hasSyncConfig){ el.textContent = 'บันทึกในเครื่องนี้เท่านั้น (ยังไม่ได้ตั้งค่าซิงก์)'; return; }
+  const q = store.get('ckd_sync_queue', []);
+  el.textContent = q.length ? `⏳ รอซิงก์ ${q.length} รายการ` : '✅ ซิงก์ข้อมูลล่าสุดแล้ว';
+}
+window.addEventListener('online', flushSyncQueue);
+
+/* ---------- boot ---------- */
+async function checkExistingRegistration(){
+  // Asks the Apps Script backend "has this LINE user already registered before?"
+  // so that clearing browser storage, or opening on a new device, doesn't force
+  // the patient through onboarding again — as long as LIFF + Apps Script are configured.
+  const hasSyncConfig = CONFIG.APPS_SCRIPT_URL && !CONFIG.APPS_SCRIPT_URL.includes('YOUR_');
+  const hasLiffConfig = CONFIG.LIFF_ID && !CONFIG.LIFF_ID.includes('YOUR_');
+  if(!hasSyncConfig || !hasLiffConfig || !currentUserId) return null;
+  try{
+    const url = CONFIG.APPS_SCRIPT_URL + '?action=check&patientId=' + encodeURIComponent(currentUserId);
+    const res = await fetch(url);
+    return await res.json();
+  }catch(e){
+    console.warn('registration check failed, falling back to local storage', e);
+    return null;
+  }
+}
+
+function withTimeout(promise, ms){
+  return Promise.race([
+    promise,
+    new Promise(resolve => setTimeout(() => resolve(null), ms))
+  ]);
+}
+async function boot(){
+  try{
+    await withTimeout(initLiff(), 4000);
+    let onboarded = store.get('ckd_onboarded', false);
+    if(!onboarded){
+      const remote = await withTimeout(checkExistingRegistration(), 4000);
+      if(remote && remote.registered){
+        onboarded = true;
+        store.set('ckd_onboarded', true);
+        if(remote.name){
+          const profile = store.get('ckd_profile', {});
+          if(!profile.name){ profile.name = remote.name; store.set('ckd_profile', profile); }
+        }
+      }
+    }
+    if(onboarded){
+      document.getElementById('bottomnav').classList.remove('hidden');
+      flushSyncQueue();
+      const hashId = location.hash.replace('#','');
+      if(VIEWS.includes(hashId) && hashId!=='onboarding'){
+        nav(hashId, false);
+      } else {
+        nav('home', false);
+      }
+    } else {
+      showView('onboarding');
+    }
+  }catch(e){
+    // Never leave the patient stuck on the loading screen — fall back to
+    // whatever we can determine from local storage alone.
+    console.error('boot() failed, falling back to local state', e);
+    const onboarded = store.get('ckd_onboarded', false);
+    if(onboarded){ document.getElementById('bottomnav').classList.remove('hidden'); }
+    showView(onboarded ? 'home' : 'onboarding');
+  }
+}
+boot();
+</script>
+</body>
+</html>
+
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
