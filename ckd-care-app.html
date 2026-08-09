@@ -584,7 +584,7 @@ function nav(id, updateHash){
   document.getElementById('topSub').textContent = t[1];
   document.querySelectorAll('.nav-btn').forEach(b=>b.classList.toggle('active', b.dataset.v===id));
   window.scrollTo(0,0);
-  if(id==='tracker'){ renderHistory(); updateSyncStatus(); flushSyncQueue(); }
+  if(id==='tracker'){ initTrackerDate(); renderHistory(); updateSyncStatus(); flushSyncQueue(); }
   if(id==='faq') renderFaq();
   if(id==='home') renderHome();
   renderIdentityBadge();
@@ -774,6 +774,7 @@ function saveTracker(){
   checkAlerts(entry, history);
   ['t-sbp','t-dbp','t-weight','t-egfr','t-cr','t-bun','t-k','t-bicarb','t-upcr'].forEach(id=>document.getElementById(id).value='');
   document.getElementById('t-date').value='';
+  initTrackerDate(); // ให้เซ็ตวันที่เป็นปัจจุบันอีกครั้งหลังจากบันทึกเสร็จ
   renderHistory();
 }
 
