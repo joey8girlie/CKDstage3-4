@@ -713,6 +713,19 @@ function renderHome(){
 }
 
 /* ---------- tracker ---------- */
+function getLocalDateString(){
+  const d = new Date();
+  const y = d.getFullYear();
+  const m = String(d.getMonth()+1).padStart(2,'0');
+  const day = String(d.getDate()).padStart(2,'0');
+  return `${y}-${m}-${day}`;
+}
+
+function initTrackerDate(){
+  const el = document.getElementById('t-date');
+  if(el && !el.value) el.value = getLocalDateString();
+}
+  
 function saveTracker(){
   const date = document.getElementById('t-date').value || new Date().toISOString().slice(0,10);
   const entry = {
@@ -731,6 +744,29 @@ function saveTracker(){
     alert('กรุณากรอกความดันโลหิตหรือน้ำหนักตัวอย่างน้อยหนึ่งรายการ');
     return;
   }
+
+  const numericChecks = [
+    ['ความดันตัวบน', entry.sbp, 40, 300],
+    ['ความดันตัวล่าง', entry.dbp, 20, 200],
+    ['น้ำหนักตัว', entry.weight, 1, 500],
+    ['eGFR', entry.egfr, 0, 200],
+    ['Creatinine', entry.cr, 0, 30],
+    ['BUN', entry.bun, 0, 300],
+    ['Potassium', entry.k, 1, 15],
+    ['Bicarbonate', entry.bicarb, 1, 60],
+    ['UPCR/UACR', entry.upcr, 0, 10000]
+  ];
+
+  for(const [label, value, min, max] of numericChecks){
+    if(value !== ''){
+      const n = parseFloat(value);
+      if(!Number.isFinite(n) || n < min || n > max){
+        alert(`${label} มีค่าไม่ถูกต้อง กรุณาตรวจสอบอีกครั้ง`);
+        return;
+      }
+    }
+  }
+
   const history = store.get('ckd_tracker', []);
   history.push(entry);
   store.set('ckd_tracker', history);
