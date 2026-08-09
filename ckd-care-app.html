@@ -264,7 +264,7 @@
       <button class="topbar-back" id="backBtn" style="display:none" onclick="goHome()">‹</button>
       <div>
         <div class="topbar-title" id="topTitle">ดูแลไตเรื้อรัง ระยะ 3-4</div>
-        <div class="topbar-sub" id="topSub">คลินิกโรคไต · โรงพยาบาลสูงเม่น</div>
+        <div class="topbar-sub" id="topSub">คลินิกโรคไต</div>
       </div>
     </div>
     <div id="stageChipWrap"></div>
@@ -455,7 +455,7 @@
   <div class="view hidden" id="view-contact">
     <div class="card">
       <h2>📞 ติดต่อคลินิก CKD</h2>
-      <p>คลินิกโรคไตเรื้อรัง โรงพยาบาลสูงเม่น</p>
+      <p>คลินิกโรคไตเรื้อรัง</p>
       <h3>เบอร์โทรศัพท์คลินิก</h3>
       <p><a class="tel-link" href="tel:0000000000">0-000-000-000 (แก้ไขเบอร์จริงในโค้ด)</a></p>
       <h3>พยาบาลผู้ดูแล</h3>
@@ -519,15 +519,50 @@ const FAQ = [
 
 const VIEWS = ['loading','onboarding','home','food','veg','med','tracker','faq','contact'];
 const TITLES = {
-  home:['ดูแลไตเรื้อรัง ระยะ 3-4','คลินิกโรคไต · โรงพยาบาลสูงเม่น'],
+  home:['ดูแลไตเรื้อรัง ระยะ 3-4','คลินิกโรคไต'],
   food:['อาหารชะลอไตเสื่อม','โภชนาการสำหรับระยะ 3-4'],
   veg:['ตารางผัก-ผลไม้','แยกตามระดับโพแทสเซียม'],
   med:['ยา & ข้อควรระวัง','ความปลอดภัยเรื่องยาและอาการ'],
   tracker:['บันทึกผลเลือด/ความดัน','สำหรับติดตามอาการและงานวิจัย'],
   faq:['คำถามพบบ่อยโรคไต','รวมคำถาม-คำตอบที่พบบ่อย'],
-  contact:['ติดต่อคลินิก CKD','โรงพยาบาลสูงเม่น']
+  contact:['ติดต่อคลินิก CKD']
 };
 
+/* ---------- LIFF direct-screen routing ----------
+ * Rich Menu can open the same LIFF with one of these query parameters:
+ *   ?screen=food     -> อาหารชะลอไตเสื่อม
+ *   ?screen=veg      -> ผักและผลไม้
+ *   ?screen=med      -> ยาและข้อควรระวัง
+ *   ?screen=tracker  -> บันทึกผล/ความดัน
+ *   ?screen=faq      -> คำถามที่พบบ่อย
+ *   ?screen=contact  -> ติดต่อคลินิก
+ */
+const LIFF_SCREEN_MAP = {
+  food: 'food',
+  veg: 'veg',
+  med: 'med',
+  tracker: 'tracker',
+  faq: 'faq',
+  contact: 'contact'
+};
+
+function getLiffScreen(){
+  try{
+    const params = new URLSearchParams(window.location.search);
+    const screen = (params.get('screen') || '').trim().toLowerCase();
+    return LIFF_SCREEN_MAP[screen] || null;
+  }catch(e){
+    return null;
+  }
+}
+
+function openLiffRequestedScreen(){
+  const screen = getLiffScreen();
+  if(!screen) return false;
+  nav(screen, false);
+  return true;
+}
+  
 /* ---------- storage helpers ---------- */
 const store = {
   get(k, fallback){ try{ const v = localStorage.getItem(k); return v ? JSON.parse(v) : fallback; }catch(e){ return fallback; } },
