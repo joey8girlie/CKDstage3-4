@@ -264,7 +264,7 @@
       <button class="topbar-back" id="backBtn" style="display:none" onclick="goHome()">‹</button>
       <div>
         <div class="topbar-title" id="topTitle">ดูแลไตเรื้อรัง ระยะ 3-4</div>
-        <div class="topbar-sub" id="topSub">คลินิกโรคไต</div>
+        <div class="topbar-sub" id="topSub">คลินิกโรคไต · โรงพยาบาลสูงเม่น</div>
       </div>
     </div>
     <div id="stageChipWrap"></div>
@@ -455,7 +455,7 @@
   <div class="view hidden" id="view-contact">
     <div class="card">
       <h2>📞 ติดต่อคลินิก CKD</h2>
-      <p>คลินิกโรคไตเรื้อรัง</p>
+      <p>คลินิกโรคไตเรื้อรัง โรงพยาบาลสูงเม่น</p>
       <h3>เบอร์โทรศัพท์คลินิก</h3>
       <p><a class="tel-link" href="tel:0000000000">0-000-000-000 (แก้ไขเบอร์จริงในโค้ด)</a></p>
       <h3>พยาบาลผู้ดูแล</h3>
@@ -519,19 +519,20 @@ const FAQ = [
 
 const VIEWS = ['loading','onboarding','home','food','veg','med','tracker','faq','contact'];
 const TITLES = {
-  home:['ดูแลไตเรื้อรัง ระยะ 3-4','คลินิกโรคไต'],
+  home:['ดูแลไตเรื้อรัง ระยะ 3-4','คลินิกโรคไต · โรงพยาบาลสูงเม่น'],
   food:['อาหารชะลอไตเสื่อม','โภชนาการสำหรับระยะ 3-4'],
   veg:['ตารางผัก-ผลไม้','แยกตามระดับโพแทสเซียม'],
   med:['ยา & ข้อควรระวัง','ความปลอดภัยเรื่องยาและอาการ'],
   tracker:['บันทึกผลเลือด/ความดัน','สำหรับติดตามอาการและงานวิจัย'],
   faq:['คำถามพบบ่อยโรคไต','รวมคำถาม-คำตอบที่พบบ่อย'],
-  contact:['ติดต่อคลินิก CKD']
+  contact:['ติดต่อคลินิก CKD','โรงพยาบาลสูงเม่น']
 };
 
 /* ---------- storage helpers ---------- */
 const store = {
   get(k, fallback){ try{ const v = localStorage.getItem(k); return v ? JSON.parse(v) : fallback; }catch(e){ return fallback; } },
-  set(k, v){ try{ localStorage.setItem(k, JSON.stringify(v)); }catch(e){} }
+  set(k, v){ try{ localStorage.setItem(k, JSON.stringify(v)); }catch(e){} },
+  remove(k){ try{ localStorage.removeItem(k); }catch(e){} }
 };
 
 /* ---------- navigation (with deep-link support via #hash, for Rich Menu buttons) ---------- */
@@ -812,12 +813,13 @@ async function flushSyncQueue(){
   let queue = store.get('ckd_sync_queue', []);
   if(!queue.length) return;
   const remaining = [];
+  const lineProf = store.get('ckd_line_profile', null);
   for(const item of queue){
     try{
       await fetch(CONFIG.APPS_SCRIPT_URL, {
         method: 'POST',
         headers: {'Content-Type': 'text/plain;charset=utf-8'},
-        body: JSON.stringify({type:item.type, payload:item.payload, patientId: currentUserId, ts:item.ts})
+        body: JSON.stringify({type:item.type, payload:item.payload, patientId: currentUserId, ts:item.ts, lineProfile: lineProf})
       });
     }catch(e){
       remaining.push(item);
@@ -867,7 +869,7 @@ function withTimeout(promise, ms){
 }
 async function boot(){
   try{
-    initTrackerDate();
+    if(typeof initTrackerDate === 'function') initTrackerDate();
     const liffReady = await withTimeout(initLiff(), 7000);
     if(liffReady === false) return;
     if(!currentUserId) throw new Error('ไม่พบ LINE User ID');
@@ -890,7 +892,7 @@ async function boot(){
       }
       document.getElementById('bottomnav').classList.remove('hidden');
       flushSyncQueue();
-      const openedByRichMenu = openLiffRequestedScreen();
+      const openedByRichMenu = typeof openLiffRequestedScreen === 'function' ? openLiffRequestedScreen() : false;
       if(!openedByRichMenu){
         const hashId = location.hash.replace('#','');
         if(VIEWS.includes(hashId) && hashId!=='onboarding') nav(hashId, false);
