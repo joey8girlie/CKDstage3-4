@@ -528,6 +528,41 @@ const TITLES = {
   contact:['ติดต่อคลินิก CKD']
 };
 
+/* ---------- LIFF direct-screen routing ----------
+ * Rich Menu can open the same LIFF with one of these query parameters:
+ *   ?screen=food     -> อาหารชะลอไตเสื่อม
+ *   ?screen=veg      -> ผักและผลไม้
+ *   ?screen=med      -> ยาและข้อควรระวัง
+ *   ?screen=tracker  -> บันทึกผล/ความดัน
+ *   ?screen=faq      -> คำถามที่พบบ่อย
+ *   ?screen=contact  -> ติดต่อคลินิก
+ */
+const LIFF_SCREEN_MAP = {
+  food: 'food',
+  veg: 'veg',
+  med: 'med',
+  tracker: 'tracker',
+  faq: 'faq',
+  contact: 'contact'
+};
+
+function getLiffScreen(){
+  try{
+    const params = new URLSearchParams(window.location.search);
+    const screen = (params.get('screen') || '').trim().toLowerCase();
+    return LIFF_SCREEN_MAP[screen] || null;
+  }catch(e){
+    return null;
+  }
+}
+
+function openLiffRequestedScreen(){
+  const screen = getLiffScreen();
+  if(!screen) return false;
+  nav(screen, false);
+  return true;
+}
+
 /* ---------- storage helpers ---------- */
 const store = {
   get(k, fallback){ try{ const v = localStorage.getItem(k); return v ? JSON.parse(v) : fallback; }catch(e){ return fallback; } },
@@ -838,23 +873,18 @@ window.addEventListener('online', flushSyncQueue);
 
 /* ---------- boot ---------- */
 async function checkExistingRegistration(){
-  // Google Sheet is the SOURCE OF TRUTH for registration status.
-  // Local ckd_onboarded is only a cache and must never override the Sheet.
+  // Asks the Apps Script backend "has this LINE user already registered before?"
+  // so that clearing browser storage, or opening on a new device, doesn't force
+  // the patient through onboarding again — as long as LIFF + Apps Script are configured.
   const hasSyncConfig = CONFIG.APPS_SCRIPT_URL && !CONFIG.APPS_SCRIPT_URL.includes('YOUR_');
   const hasLiffConfig = CONFIG.LIFF_ID && !CONFIG.LIFF_ID.includes('YOUR_');
   if(!hasSyncConfig || !hasLiffConfig || !currentUserId) return null;
-
   try{
-    const url = CONFIG.APPS_SCRIPT_URL
-      + '?action=check&patientId=' + encodeURIComponent(currentUserId)
-      + '&lineUserId=' + encodeURIComponent(currentUserId);
-    const res = await fetch(url, {cache:'no-store'});
-    if(!res.ok) throw new Error(`HTTP ${res.status}`);
-    const result = await res.json();
-    if(!result || result.ok !== true) throw new Error(result?.error || 'ตรวจสอบสถานะการลงทะเบียนไม่สำเร็จ');
-    return result;
+    const url = CONFIG.APPS_SCRIPT_URL + '?action=check&patientId=' + encodeURIComponent(currentUserId);
+    const res = await fetch(url);
+    return await res.json();
   }catch(e){
-    console.error('Google Sheet registration check failed:', e);
+    console.warn('registration check failed, falling back to local storage', e);
     return null;
   }
 }
@@ -867,49 +897,43 @@ function withTimeout(promise, ms){
 }
 async function boot(){
   try{
-    initTrackerDate();
-    const liffReady = await withTimeout(initLiff(), 7000);
-    if(liffReady === false) return;
-    if(!currentUserId) throw new Error('ไม่พบ LINE User ID');
-
-    // IMPORTANT: Always ask Google Sheet first.
-    // If the LINE User ID is NOT found there, this is a NEW patient.
-    // Local storage can never make a deleted registration appear registered.
-    const remote = await withTimeout(checkExistingRegistration(), 5000);
-    if(remote === null){
-      throw new Error('ไม่สามารถตรวจสอบสถานะกับ Google Sheet ได้ กรุณาตรวจสอบอินเทอร์เน็ตหรือ Apps Script');
-    }
-
-    const onboarded = remote.registered === true;
-    store.set('ckd_onboarded', onboarded);
-
-    if(onboarded){
-      if(remote.name){
-        const profile = store.get('ckd_profile', {});
-        if(!profile.name){ profile.name = remote.name; store.set('ckd_profile', profile); }
+    await withTimeout(initLiff(), 4000);
+    let onboarded = store.get('ckd_onboarded', false);
+    if(!onboarded){
+      const remote = await withTimeout(checkExistingRegistration(), 4000);
+      if(remote && remote.registered){
+        onboarded = true;
+        store.set('ckd_onboarded', true);
+        if(remote.name){
+          const profile = store.get('ckd_profile', {});
+          if(!profile.name){ profile.name = remote.name; store.set('ckd_profile', profile); }
+        }
       }
+    }
+    if(onboarded){
       document.getElementById('bottomnav').classList.remove('hidden');
       flushSyncQueue();
+      // Priority: Rich Menu ?screen=... > existing #hash > Home.
+      // This lets a Rich Menu button open a specific CKD Care page directly.
       const openedByRichMenu = openLiffRequestedScreen();
       if(!openedByRichMenu){
         const hashId = location.hash.replace('#','');
-        if(VIEWS.includes(hashId) && hashId!=='onboarding') nav(hashId, false);
-        else nav('home', false);
+        if(VIEWS.includes(hashId) && hashId!=='onboarding'){
+          nav(hashId, false);
+        } else {
+          nav('home', false);
+        }
       }
-    }else{
-      // Not found in Google Sheet = NEW patient.
-      // Clear only local onboarding/profile cache so Consent is shown.
-      store.set('ckd_onboarded', false);
-      store.remove('ckd_profile');
-      store.remove('ckd_consent');
-      store.remove('ckd_pretest');
+    } else {
       showView('onboarding');
     }
   }catch(e){
-    console.error('boot() failed:', e);
-    showView('loading');
-    const loading = document.getElementById('loadingText');
-    if(loading) loading.textContent = 'ไม่สามารถตรวจสอบสถานะผู้ป่วยได้ กรุณาตรวจสอบอินเทอร์เน็ตแล้วลองใหม่';
+    // Never leave the patient stuck on the loading screen — fall back to
+    // whatever we can determine from local storage alone.
+    console.error('boot() failed, falling back to local state', e);
+    const onboarded = store.get('ckd_onboarded', false);
+    if(onboarded){ document.getElementById('bottomnav').classList.remove('hidden'); }
+    showView(onboarded ? 'home' : 'onboarding');
   }
 }
 boot();
